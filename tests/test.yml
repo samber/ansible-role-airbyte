@@ -2,14 +2,13 @@
 - hosts: test
   remote_user: root
   roles:
-    # - role: geerlingguy.pip
-    #   pip_install_packages:
-    #     - name: docker
-    #     - name: docker-compose
-    # - role: geerlingguy.docker
-    #   docker_service_state: started
-    #   docker_service_enabled: true
-    #   docker_restart_handler_state: restarted
-    #   docker_install_compose: true
-    # - ../
+    - role: geerlingguy.pip
+      pip_install_packages:
+        - name: docker
+        - name: docker-compose
+    - role: geerlingguy.docker
+      docker_service_state: started
+      docker_service_enabled: true
+      docker_restart_handler_state: restarted
+      docker_install_compose: true
     - ../../ansible-role-airbyte
