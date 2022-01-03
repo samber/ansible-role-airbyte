@@ -1,0 +1,19 @@
+---
+# defaults file for ansible-role-airbyte
+
+airbyte_version: '0.35.2-alpha'
+airbyte_download_url: 'https://raw.githubusercontent.com/airbytehq/airbyte/v{{ airbyte_version }}'
+airbyte_download_url_compose: '{{ airbyte_download_url }}/docker-compose.yaml'
+airbyte_download_url_env: '{{ airbyte_download_url }}/.env'
+
+airbyte_docker_path: '/usr/local/src/airbyte'
+airbyte_docker_path_compose: '{{ airbyte_docker_path }}/docker-compose.yaml'
+airbyte_docker_path_env: '{{ airbyte_docker_path }}/.env'
+
+airbyte_proxy_mode: no
+
+airbyte_database_host: db
+airbyte_database_port: 5432
+airbyte_database_user: docker
+airbyte_database_pass: docker
+airbyte_database_name: airbyte

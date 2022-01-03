@@ -1,0 +1,71 @@
+---
+# tasks file for ansible-role-airbyte
+
+- name: Creates working dir
+  file:
+    path: "{{ airbyte_docker_path }}"
+    state: directory
+
+- name: Check current Airbyte version.
+  command: "cat {{ airbyte_docker_path_env }} | grep -E '^VERSION=' | sed 's/^VERSION=//g'"
+  failed_when: false
+  changed_when: false
+  register: airbyte_version_check
+
+- name: Download Airbyte docker-compose.yaml
+  get_url:
+    url: "{{ airbyte_download_url_compose }}"
+    dest: "{{ airbyte_docker_path_compose }}"
+    mode: '0644'
+  when: >
+    airbyte_version_check.stdout is not defined
+    or airbyte_version not in airbyte_version_check.stdout
+  register: airbyte_dockercompose
+
+- name: Expose ports only on localhost
+  ansible.builtin.replace:
+    path: "{{ airbyte_docker_path_compose }}"
+    regexp: "- {{ item }}"
+    replace: '- 127.0.0.1:{{ item }}'
+  with_items:
+     - '8000:80'
+     - '8001:8001'
+     - '7233:7233'
+  when: >
+    airbyte_dockercompose.changed
+    and airbyte_proxy_mode is true
+  notify: restart airbyte
+
+- name: Download Airbyte .env
+  get_url:
+    url: "{{ airbyte_download_url_env }}"
+    dest: "{{ airbyte_docker_path_env }}"
+    mode: '0644'
+  when: >
+    airbyte_version_check.stdout is not defined
+    or airbyte_version not in airbyte_version_check.stdout
+  register: airbyte_dotenv
+
+- name: Replace env variables
+  ansible.builtin.shell: |
+    echo VERSION={{ airbyte_version }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_HOST={{ airbyte_database_host }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_PORT={{ airbyte_database_port }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_USER={{ airbyte_database_user }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_PASSWORD={{ airbyte_database_pass }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_DB={{ airbyte_database_name }} >> {{ airbyte_docker_path_env }}
+    echo DATABASE_URL=jdbc:postgresql://{{ airbyte_database_host }}:{{ airbyte_database_port }}/{{ airbyte_database_name }} >> {{ airbyte_docker_path_env }}
+  when: airbyte_dotenv.changed
+  notify: restart airbyte
+
+- name: Ensure airbyte is running and enabled at boot.
+  community.docker.docker_compose:
+    project_src: '{{ airbyte_docker_path }}'
+    state: present
+
+- name: Verify Airbyte is responding to requests.
+  uri:
+    url: http://localhost:8000/
+    return_content: true
+  register: webapp_output
+  failed_when: "'<html' not in webapp_output.content"

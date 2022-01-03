@@ -1,0 +1,2 @@
+[test]
+localhost ansible_ssh_extra_args='-o StrictHostKeyChecking=no' ansible_user=root
